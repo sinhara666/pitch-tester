@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Pitch Tester</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f2f4ef;
+      --surface: #ffffff;
+      --surface-2: #e6eae2;
+      --surface-3: #dce2d8;
+      --ink: #101710;
+      --muted: #546054;
+      --line: #bdc7bb;
+      --lime: #3d8f00;
+      --lime-hot: #73dd1c;
+      --cyan: #007d86;
+      --yellow: #a76300;
+      --red: #c63232;
+      --shadow: 0 18px 50px rgba(28, 45, 27, .12);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #070b09;
+        --surface: #101612;
+        --surface-2: #151d17;
+        --surface-3: #1d281f;
+        --ink: #f0f7ef;
+        --muted: #a8b5a8;
+        --line: #2b392d;
+        --lime: #9cff4d;
+        --lime-hot: #b5ff73;
+        --cyan: #50e8ef;
+        --yellow: #ffd45e;
+        --red: #ff6767;
+        --shadow: 0 22px 70px rgba(0, 0, 0, .42);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 0; background: var(--bg); }
+    body {
+      margin: 0;
+      min-width: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(90, 120, 90, .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(90, 120, 90, .055) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+      color: var(--ink);
+      font-family: "Manrope", sans-serif;
+      overflow-x: hidden;
+    }
+    button, input, textarea { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+      outline-offset: 3px;
+    }
+    .shell { width: min(1180px, 100%); margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 56px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* setup */
+    .setup-wrap { min-height: calc(100vh - 84px); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .75fr); gap: clamp(28px, 6vw, 88px); align-items: center; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 18px; color: var(--lime); font: 500 12px/1 "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .signal { width: 9px; height: 9px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 5px color-mix(in srgb, var(--lime) 18%, transparent); }
+    h1 { margin: 0; max-width: 780px; font-size: clamp(42px, 7vw, 82px); line-height: .98; letter-spacing: -.055em; font-weight: 800; }
+    .lead { max-width: 650px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2vw, 21px); line-height: 1.55; }
+    .truth-strip { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 34px; color: var(--muted); font: 500 12px/1.4 "DM Mono", monospace; }
+    .truth-strip span { display: inline-flex; align-items: center; gap: 8px; }
+    .truth-strip i { width: 5px; height: 5px; background: var(--cyan); border-radius: 50%; }
+    .setup-card { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); padding: clamp(22px, 4vw, 34px); border-radius: var(--radius-lg); }
+    .step-label { margin: 0 0 8px; font: 500 11px/1 "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
+    .field-block + .field-block { margin-top: 26px; }
+    label.field-title { display: block; font-size: 15px; font-weight: 800; margin-bottom: 10px; }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%; border: 1px solid var(--line); color: var(--ink); background: var(--bg); border-radius: 11px; padding: 15px 16px; transition: border-color .2s, box-shadow .2s; }
+    input[type="text"]:focus, input[type="password"]:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 12%, transparent); outline: none; }
+    input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--muted) 72%, transparent); }
+    .offer-input { min-height: 96px; resize: vertical; line-height: 1.45; }
+    .audience-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .audience { text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 11px 12px; cursor: pointer; font-size: 12px; font-weight: 700; transition: .18s ease; }
+    .audience:hover { border-color: var(--cyan); }
+    .audience.selected { border-color: var(--lime); background: color-mix(in srgb, var(--lime) 12%, var(--surface)); box-shadow: inset 0 0 0 1px var(--lime); }
+    .key-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+    .key-wrap { position: relative; min-width: 0; }
+    .key-wrap input { padding-right: 62px; height: 100%; }
+    .show-key { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--cyan); padding: 8px; cursor: pointer; font: 500 11px/1 "DM Mono", monospace; text-transform: uppercase; }
+    .test-connection { border: 1px solid var(--line); border-radius: 10px; padding: 0 13px; background: var(--surface-2); color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .test-connection:hover { border-color: var(--cyan); }
+    .test-connection:disabled { opacity: .6; cursor: wait; }
+    .connection-status { min-height: 17px; margin: 7px 0 0; font-size: 11px; line-height: 1.45; }
+    .connection-status:empty { min-height: 0; margin: 0; }
+    .connection-status.success { color: var(--lime); }
+    .connection-status.error { color: var(--red); }
+    .connection-status.testing { color: var(--muted); }
+    .field-help { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .field-help a { color: var(--cyan); text-underline-offset: 3px; }
+    .primary { width: 100%; border: 0; border-radius: 12px; margin-top: 26px; padding: 16px 18px; background: var(--lime); color: #071004; cursor: pointer; font-weight: 800; box-shadow: 0 8px 26px color-mix(in srgb, var(--lime) 25%, transparent); transition: filter .18s, transform .18s; }
+    .primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .primary:disabled { opacity: .55; cursor: not-allowed; transform: none; filter: none; }
+    .error-box { display: none; margin-top: 14px; border: 1px solid color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 10%, var(--surface)); color: var(--red); border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.5; }
+    .error-box.show { display: block; }
+
+    /* loading */
+    .loading-screen { min-height: calc(100vh - 84px); display: grid; place-items: center; text-align: center; }
+    .loader-ring { width: 102px; height: 102px; margin: 0 auto 28px; position: relative; }
+    .loader-ring::before, .loader-ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--line); }
+    .loader-ring::after { border-color: var(--lime) transparent transparent var(--cyan); animation: spin 1s linear infinite; box-shadow: 0 0 28px color-mix(in srgb, var(--lime) 20%, transparent); }
+    .loader-core { position: absolute; inset: 30px; border-radius: 50%; background: var(--lime); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { transform: scale(.72); opacity: .45; } }
+    .loading-screen h2 { font-size: clamp(27px, 5vw, 44px); letter-spacing: -.035em; margin: 0 0 10px; }
+    .loading-screen p { color: var(--muted); margin: 0; }
+
+    /* arena */
+    .arena-top { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: stretch; margin-bottom: 20px; }
+    .brief, .meter-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; }
+    .brief .mini { color: var(--cyan); font: 500 11px/1.2 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .1em; }
+    .brief h2 { margin: 10px 0 8px; font-size: clamp(18px, 3vw, 27px); line-height: 1.25; letter-spacing: -.025em; }
+    .brief p { margin: 0; color: var(--muted); font-size: 13px; }
+    .meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .meter-head span:first-child { color: var(--muted); font: 500 10px/1 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .1em; }
+    .verdict-word { font: 700 16px/1 "DM Mono", monospace; color: var(--muted); }
+    .meter-track { height: 11px; overflow: hidden; border-radius: 999px; background: var(--surface-3); margin: 17px 0 12px; }
+    .meter-fill { height: 100%; width: 0%; border-radius: inherit; background: var(--muted); transition: width .45s ease, background .3s; }
+    .meter-scale { display: flex; justify-content: space-between; color: var(--muted); font: 500 9px/1 "DM Mono", monospace; }
+    .arena-grid { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 20px; }
+    .roster { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px; align-self: start; }
+    .roster-title { margin: 4px 5px 12px; color: var(--muted); font: 500 10px/1 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .1em; }
+    .buyer-chip { width: 100%; display: grid; grid-template-columns: 39px 1fr auto; gap: 10px; align-items: center; border: 0; color: var(--ink); background: transparent; text-align: left; padding: 10px 8px; border-radius: 10px; }
+    .buyer-chip + .buyer-chip { margin-top: 3px; }
+    .buyer-chip.current { background: var(--surface-3); }
+    .buyer-chip.done { cursor: pointer; }
+    .avatar { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: color-mix(in srgb, var(--cyan) 15%, var(--surface-2)); color: var(--cyan); font: 700 13px/1 "DM Mono", monospace; border: 1px solid color-mix(in srgb, var(--cyan) 35%, var(--line)); }
+    .buyer-chip strong { display: block; font-size: 12px; }
+    .buyer-chip small { display: block; color: var(--muted); margin-top: 3px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 145px; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+    .status-dot.yes { background: var(--lime); box-shadow: 0 0 10px color-mix(in srgb, var(--lime) 55%, transparent); }
+    .status-dot.no { background: var(--red); }
+    .conversation { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: clamp(20px, 4vw, 38px); }
+    .round-line { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 26px; }
+    .round-count { color: var(--cyan); font: 500 11px/1 "DM Mono", monospace; letter-spacing: .09em; text-transform: uppercase; }
+    .skepticism { color: var(--muted); font: 500 10px/1 "DM Mono", monospace; }
+    .buyer-intro { display: grid; grid-template-columns: 58px 1fr; gap: 16px; align-items: center; margin-bottom: 22px; }
+    .buyer-intro .avatar { width: 58px; height: 58px; font-size: 17px; }
+    .buyer-intro h3 { margin: 0 0 4px; font-size: 20px; }
+    .buyer-intro p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    blockquote { margin: 0; padding: 22px; background: var(--surface-2); border-radius: 14px 14px 14px 4px; font-size: clamp(17px, 3vw, 23px); line-height: 1.45; font-weight: 650; letter-spacing: -.018em; }
+    .reply-area { margin-top: 26px; }
+    .reply-area label { display: block; margin-bottom: 9px; font-size: 12px; font-weight: 800; }
+    .reply-area textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+    .reply-actions { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+    .reply-actions .primary { width: auto; min-width: 170px; margin: 0; }
+    .key-hint { color: var(--muted); font: 500 10px/1.4 "DM Mono", monospace; }
+    .reaction { display: none; margin-top: 26px; border-top: 1px solid var(--line); padding-top: 24px; }
+    .reaction.show { display: block; }
+    .reaction-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 999px; background: var(--surface-2); font: 700 10px/1 "DM Mono", monospace; text-transform: uppercase; }
+    .reaction-badge.yes { color: var(--lime); }
+    .reaction-badge.maybe { color: var(--yellow); }
+    .reaction-badge.no { color: var(--red); }
+    .reaction p { color: var(--ink); font-size: 15px; line-height: 1.55; margin: 14px 0 0; }
+    .reaction-score { color: var(--muted); font: 500 10px/1 "DM Mono", monospace; margin-left: 9px; }
+    .next-btn { width: 100%; margin-top: 20px; border: 1px solid var(--line); color: var(--ink); background: var(--surface-2); border-radius: 11px; padding: 14px; font-weight: 800; cursor: pointer; }
+    .api-error-inline { display: none; margin-top: 16px; color: var(--red); background: color-mix(in srgb, var(--red) 9%, var(--surface)); border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.5; }
+    .api-error-inline.show { display: block; }
+
+    /* report */
+    .report { max-width: 920px; margin: 0 auto; }
+    .report-hero { text-align: center; padding: 40px 18px 32px; }
+    .report-kicker { color: var(--muted); font: 500 11px/1 "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .final-verdict { margin: 12px 0 10px; font-size: clamp(66px, 15vw, 132px); line-height: .9; letter-spacing: -.075em; font-weight: 800; }
+    .final-verdict.yes { color: var(--lime); text-shadow: 0 0 34px color-mix(in srgb, var(--lime) 18%, transparent); }
+    .final-verdict.maybe { color: var(--yellow); }
+    .final-verdict.no { color: var(--red); }
+    .report-score { color: var(--muted); font-size: 14px; }
+    .one-fix { border: 1px solid color-mix(in srgb, var(--lime) 45%, var(--line)); background: color-mix(in srgb, var(--lime) 8%, var(--surface)); border-radius: var(--radius-lg); padding: clamp(22px, 5vw, 38px); margin-bottom: 24px; }
+    .one-fix span { color: var(--lime); font: 600 11px/1 "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .one-fix h2 { margin: 14px 0 0; font-size: clamp(22px, 4vw, 34px); line-height: 1.3; letter-spacing: -.03em; }
+    .breakdown { display: grid; gap: 12px; }
+    .result-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; }
+    .result-head { display: flex; align-items: center; gap: 12px; }
+    .result-head .avatar { flex: 0 0 auto; }
+    .result-head h3 { margin: 0; font-size: 15px; }
+    .result-head p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .result-state { margin-left: auto; flex: 0 0 auto; font: 700 10px/1 "DM Mono", monospace; text-transform: uppercase; }
+    .result-state.yes { color: var(--lime); }
+    .result-state.no { color: var(--red); }
+    .result-content { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+    .result-content div { min-width: 0; }
+    .result-content label { display: block; color: var(--muted); margin-bottom: 6px; font: 500 9px/1 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .09em; }
+    .result-content p { margin: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+    .report-actions { display: flex; justify-content: center; padding: 28px 0 0; }
+    .report-actions .primary { width: auto; min-width: 210px; margin: 0; }
+
+    @media (max-width: 820px) {
+      .setup-wrap { grid-template-columns: 1fr; padding-top: 22px; align-items: start; }
+      .setup-copy { padding: 22px 2px 0; }
+      .truth-strip { margin-top: 20px; }
+      .arena-top { grid-template-columns: 1fr; }
+      .arena-grid { grid-template-columns: 1fr; }
+      .roster { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; order: 0; padding: 8px; }
+      .roster-title { grid-column: 1 / -1; }
+      .buyer-chip { display: grid; place-items: center; padding: 7px 2px; }
+      .buyer-chip .avatar { width: 34px; height: 34px; }
+      .buyer-chip > span:nth-child(2), .buyer-chip .status-dot { display: none; }
+    }
+    @media (max-width: 560px) {
+      .shell { padding: 14px 12px 34px; }
+      h1 { font-size: 44px; }
+      .setup-card { padding: 20px 16px; }
+      .audience-grid { grid-template-columns: 1fr; }
+      .arena-top { gap: 10px; margin-bottom: 10px; }
+      .brief, .meter-card { padding: 16px; }
+      .arena-grid { gap: 10px; }
+      .conversation { padding: 20px 16px; }
+      .reply-actions { align-items: stretch; flex-direction: column; }
+      .reply-actions .primary { width: 100%; }
+      .key-hint { text-align: center; }
+      .result-content { grid-template-columns: 1fr; }
+      .result-card { padding: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section id="setupScreen" class="screen active" aria-labelledby="setupTitle">
+      <div class="setup-wrap">
+        <div class="setup-copy">
+          <div class="eyebrow"><span class="signal"></span> Five buyers. No easy passes.</div>
+          <h1 id="setupTitle">Can your offer survive the room?</h1>
+          <p class="lead">Say what you sell. Pick who you sell it to. Five synthetic buyers will challenge the weak spots, and your replies decide the verdict.</p>
+          <div class="truth-strip" aria-label="How the test works">
+            <span><i></i>5 objections</span><span><i></i>1 reply each</span><span><i></i>1 blunt verdict</span>
+          </div>
+        </div>
+        <form class="setup-card" id="setupForm" novalidate>
+          <div class="field-block">
+            <p class="step-label">01 / The pitch</p>
+            <label class="field-title" for="offerInput">Your offer in one sentence</label>
+            <textarea class="offer-input" id="offerInput" maxlength="420" placeholder="I help [who] get [result] without [pain]." required></textarea>
+          </div>
+          <div class="field-block">
+            <p class="step-label">02 / The room</p>
+            <label class="field-title">Who are you trying to convince?</label>
+            <div class="audience-grid" id="audienceGrid" role="group" aria-label="Choose a target audience">
+              <button type="button" class="audience" data-audience="Startup Founders">Startup Founders</button>
+              <button type="button" class="audience" data-audience="Busy Moms">Busy Moms</button>
+              <button type="button" class="audience" data-audience="Content Creators">Content Creators</button>
+              <button type="button" class="audience" data-audience="Coaches">Coaches</button>
+              <button type="button" class="audience" data-audience="Freelancers">Freelancers</button>
+              <button type="button" class="audience" data-audience="Small Business Owners">Small Business Owners</button>
+              <button type="button" class="audience" data-audience="Students">Students</button>
+              <button type="button" class="audience" data-audience="Fitness Enthusiasts">Fitness Enthusiasts</button>
+            </div>
+          </div>
+          <div class="field-block">
+            <p class="step-label">03 / The engine</p>
+            <label class="field-title" for="keyInput">Groq API key</label>
+            <div class="key-tools">
+              <div class="key-wrap">
+                <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="gsk_..." required />
+                <button class="show-key" id="showKey" type="button">Show</button>
+              </div>
+              <button class="test-connection" id="testConnection" type="button">Test connection</button>
+            </div>
+            <p class="connection-status" id="connectionStatus" aria-live="polite"></p>
+            <p class="field-help">Used only for this test and sent directly to Groq. It is not saved. <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer">Get a key at Groq</a>.</p>
+          </div>
+          <button class="primary" id="startButton" type="submit">Start the test</button>
+          <div class="error-box" id="setupError" role="alert"></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="loadingScreen" class="screen" aria-live="polite">
+      <div class="loading-screen">
+        <div>
+          <div class="loader-ring"><span class="loader-core"></span></div>
+          <h2 id="loadingTitle">Building your buyer panel...</h2>
+          <p id="loadingText">Finding five people who will not clap just to be nice.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="arenaScreen" class="screen" aria-labelledby="arenaOffer">
+      <div class="arena-top">
+        <div class="brief">
+          <span class="mini" id="arenaAudience"></span>
+          <h2 id="arenaOffer"></h2>
+          <p>Answer the objection in front of you. You get one shot per buyer.</p>
+        </div>
+        <div class="meter-card" aria-live="polite">
+          <div class="meter-head"><span>Live verdict</span><strong class="verdict-word" id="verdictWord">WAITING</strong></div>
+          <div class="meter-track" role="progressbar" aria-label="Buyers convinced" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><div class="meter-fill" id="meterFill"></div></div>
+          <div class="meter-scale"><span>NO</span><span>NOT YET</span><span>YES</span></div>
+        </div>
+      </div>
+      <div class="arena-grid">
+        <aside class="roster" id="roster"><p class="roster-title">Buyer panel</p></aside>
+        <section class="conversation" aria-live="polite">
+          <div class="round-line"><span class="round-count" id="roundCount"></span><span class="skepticism" id="skepticism"></span></div>
+          <div class="buyer-intro">
+            <div class="avatar" id="activeAvatar"></div>
+            <div><h3 id="activeName"></h3><p id="activeBackground"></p></div>
+          </div>
+          <blockquote id="activeObjection"></blockquote>
+          <div class="reply-area" id="replyArea">
+            <label for="replyInput">Your reply</label>
+            <textarea id="replyInput" maxlength="1000" placeholder="Answer the concern directly. No fluff."></textarea>
+            <div class="reply-actions">
+              <button class="primary" type="button" id="submitReply">Lock in reply</button>
+              <span class="key-hint">Ctrl + Enter to submit</span>
+            </div>
+          </div>
+          <div class="reaction" id="reaction">
+            <div><span class="reaction-badge" id="reactionBadge"></span><span class="reaction-score" id="reactionScore"></span></div>
+            <p id="reactionText"></p>
+            <button class="next-btn" id="nextButton" type="button"></button>
+          </div>
+          <div class="api-error-inline" id="arenaError" role="alert"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="reportScreen" class="screen">
+      <div class="report">
+        <header class="report-hero">
+          <p class="report-kicker">Final verdict</p>
+          <h1 class="final-verdict" id="finalVerdict"></h1>
+          <p class="report-score" id="reportScore"></p>
+        </header>
+        <section class="one-fix" aria-labelledby="fixTitle">
+          <span>The one fix</span>
+          <h2 id="fixTitle"></h2>
+        </section>
+        <section class="breakdown" id="breakdown" aria-label="Buyer breakdown"></section>
+        <div class="report-actions"><button class="primary" id="testAgain" type="button">Test another pitch</button></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+      var GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models";
+      var NETWORK_ERROR_MESSAGE = "Your browser could not reach Groq. This is usually a network or ad-blocker issue. Try turning off any ad blocker or VPN and reload.";
+      var KEY_ERROR_MESSAGE = "Your Groq API key was rejected. Generate a fresh one at console.groq.com and paste it in.";
+      var RATE_LIMIT_MESSAGE = "Groq rate limit hit. Wait a minute and try again.";
+      var MODELS_ERROR_MESSAGE = "None of the models worked with your key. Generate a fresh key at console.groq.com.";
+      var GROQ_MODELS = [
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "qwen/qwen3-32b"
+      ];
+      var state = { offer: "", audience: "", apiKey: "", buyers: [], current: 0, results: [] };
+
+      var setupForm = document.getElementById("setupForm");
+      var offerInput = document.getElementById("offerInput");
+      var keyInput = document.getElementById("keyInput");
+      var setupError = document.getElementById("setupError");
+      var startButton = document.getElementById("startButton");
+      var testConnection = document.getElementById("testConnection");
+      var connectionStatus = document.getElementById("connectionStatus");
+      var replyInput = document.getElementById("replyInput");
+      var submitReply = document.getElementById("submitReply");
+      var arenaError = document.getElementById("arenaError");
+
+      document.getElementById("audienceGrid").addEventListener("click", function (event) {
+        var button = event.target.closest(".audience");
+        if (!button) return;
+        document.querySelectorAll(".audience").forEach(function (el) { el.classList.remove("selected"); el.setAttribute("aria-pressed", "false"); });
+        button.classList.add("selected");
+        button.setAttribute("aria-pressed", "true");
+        state.audience = button.getAttribute("data-audience");
+      });
+
+      document.getElementById("showKey").addEventListener("click", function () {
+        var showing = keyInput.type === "text";
+        keyInput.type = showing ? "password" : "text";
+        this.textContent = showing ? "Show" : "Hide";
+      });
+
+      function showScreen(id) {
+        document.querySelectorAll(".screen").forEach(function (screen) { screen.classList.remove("active"); });
+        document.getElementById(id).classList.add("active");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function setSetupError(message) {
+        setupError.textContent = message;
+        setupError.classList.toggle("show", Boolean(message));
+      }
+
+      function setArenaError(message) {
+        arenaError.textContent = message;
+        arenaError.classList.toggle("show", Boolean(message));
+      }
+
+      function setConnectionStatus(message, kind) {
+        connectionStatus.textContent = message;
+        connectionStatus.className = "connection-status" + (kind ? " " + kind : "");
+      }
+
+      function safeText(value, fallback) {
+        return typeof value === "string" && value.trim() ? value.trim() : fallback;
+      }
+
+      function initials(name) {
+        return safeText(name, "B").split(/\s+/).slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join("");
+      }
+
+      function isModelAccessError(response, payload) {
+        var apiError = payload && payload.error ? payload.error : {};
+        var code = String(apiError.code || apiError.type || "").toLowerCase();
+        var message = String(apiError.message || "").toLowerCase();
+        var mentionsModelFailure = /model[_ -]?not[_ -]?found|permission[_ -]?denied|access[_ -]?denied/.test(code) ||
+          /model.{0,80}(not found|does not exist|no longer supported|decommissioned|access denied|do not have access|doesn't have access|not authorized|permission)/.test(message) ||
+          /(access denied|permission denied|not authorized).{0,80}model/.test(message);
+        return (response.status === 403 || response.status === 404) && mentionsModelFailure;
+      }
+
+      async function readGroqResponse(response) {
+        var rawText = "";
+        try { rawText = await response.text(); } catch (error) { rawText = ""; }
+        var payload = {};
+        if (rawText) {
+          try { payload = JSON.parse(rawText); } catch (error) { payload = {}; }
+        }
+        return { payload: payload, rawText: rawText };
+      }
+
+      function groqErrorMessage(response, payload, rawText) {
+        if (response.status === 401) return KEY_ERROR_MESSAGE;
+        if (response.status === 429) return RATE_LIMIT_MESSAGE;
+        var detail = payload && payload.error && payload.error.message ? payload.error.message :
+          payload && payload.message ? payload.message : rawText || response.statusText || "Unknown error";
+        detail = String(detail).replace(/\s+/g, " ").trim().slice(0, 100) || "Unknown error";
+        return "Groq returned HTTP " + response.status + ": " + detail;
+      }
+
+      async function groqJSON(systemPrompt, userPrompt) {
+        for (var modelIndex = 0; modelIndex < GROQ_MODELS.length; modelIndex += 1) {
+          var response;
+          try {
+            response = await fetch(GROQ_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + state.apiKey },
+              body: JSON.stringify({
+                model: GROQ_MODELS[modelIndex],
+                temperature: 0.78,
+                response_format: { type: "json_object" },
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt }
+                ]
+              })
+            });
+          } catch (error) {
+            throw new Error(NETWORK_ERROR_MESSAGE);
+          }
+          var parsed = await readGroqResponse(response);
+          var payload = parsed.payload;
+          if (!response.ok) {
+            if (isModelAccessError(response, payload)) continue;
+            throw new Error(groqErrorMessage(response, payload, parsed.rawText));
+          }
+          var content = payload && payload.choices && payload.choices[0] && payload.choices[0].message && payload.choices[0].message.content;
+          if (!content) throw new Error("Groq returned an empty answer. Try this step again.");
+          try { return JSON.parse(content); } catch (error) { throw new Error("The buyer panel came back in the wrong format. Try again."); }
+        }
+        throw new Error(MODELS_ERROR_MESSAGE);
+      }
+
+      keyInput.addEventListener("input", function () {
+        setConnectionStatus("", "");
+      });
+
+      testConnection.addEventListener("click", async function () {
+        var apiKey = keyInput.value.trim();
+        if (!apiKey) {
+          setConnectionStatus("Add your Groq API key first.", "error");
+          keyInput.focus();
+          return;
+        }
+        testConnection.disabled = true;
+        setConnectionStatus("Testing connection...", "testing");
+        try {
+          var response;
+          try {
+            response = await fetch(GROQ_MODELS_URL, {
+              method: "GET",
+              headers: { "Authorization": "Bearer " + apiKey }
+            });
+          } catch (error) {
+            throw new Error(NETWORK_ERROR_MESSAGE);
+          }
+          var parsed = await readGroqResponse(response);
+          if (!response.ok) throw new Error(groqErrorMessage(response, parsed.payload, parsed.rawText));
+          setConnectionStatus("Connected", "success");
+        } catch (error) {
+          setConnectionStatus(error.message || NETWORK_ERROR_MESSAGE, "error");
+        } finally {
+          testConnection.disabled = false;
+        }
+      });
+
+      function validateBuyers(data) {
+        var raw = data && Array.isArray(data.buyers) ? data.buyers : [];
+        if (raw.length !== 5) throw new Error("The panel did not return five buyers. Try again.");
+        return raw.map(function (buyer, index) {
+          var skepticism = Number(buyer.skepticism);
+          if (!Number.isFinite(skepticism)) skepticism = 3;
+          skepticism = Math.max(1, Math.min(5, Math.round(skepticism)));
+          return {
+            name: safeText(buyer.name, "Buyer " + (index + 1)),
+            age: Math.max(18, Math.min(90, Number(buyer.age) || 35)),
+            occupation: safeText(buyer.occupation, state.audience),
+            background: safeText(buyer.background, "A potential buyer weighing the offer carefully."),
+            skepticism: skepticism,
+            objection: safeText(buyer.objection, "Why should I trust this will work for someone like me?")
+          };
+        });
+      }
+
+      setupForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        setSetupError("");
+        var offer = offerInput.value.trim();
+        var apiKey = keyInput.value.trim();
+        if (offer.length < 12) return setSetupError("Give the buyers a full sentence so they have something real to test.");
+        if (!state.audience) return setSetupError("Pick the audience you want in the room.");
+        if (!apiKey) return setSetupError("Add your Groq API key to run the live test.");
+        state.offer = offer;
+        state.apiKey = apiKey;
+        state.buyers = [];
+        state.results = [];
+        state.current = 0;
+        startButton.disabled = true;
+        showScreen("loadingScreen");
+        document.getElementById("loadingTitle").textContent = "Building your buyer panel...";
+        document.getElementById("loadingText").textContent = "Finding five people who will not clap just to be nice.";
+        try {
+          var data = await groqJSON(
+            "You create realistic synthetic customer panels for offer testing. Be sharp, diverse within the requested audience, commercially realistic, and never flattering by default. Return JSON only.",
+            "Offer: " + state.offer + "\nTarget audience: " + state.audience + "\n\nCreate exactly 5 distinct potential buyers. Each needs: name, age, occupation, background (one sentence), skepticism (integer 1-5), and objection (one specific first-person objection to this exact offer). Vary budget, urgency, trust, experience, and buying motive. Avoid stereotypes. Return this exact shape: {\"buyers\":[{\"name\":\"\",\"age\":0,\"occupation\":\"\",\"background\":\"\",\"skepticism\":0,\"objection\":\"\"}]}"
+          );
+          state.buyers = validateBuyers(data);
+          buildArena();
+          showScreen("arenaScreen");
+        } catch (error) {
+          showScreen("setupScreen");
+          setSetupError(error.message || "The test could not start. Try again.");
+        } finally {
+          startButton.disabled = false;
+        }
+      });
+
+      function buildArena() {
+        document.getElementById("arenaAudience").textContent = state.audience;
+        document.getElementById("arenaOffer").textContent = state.offer;
+        renderRoster();
+        renderRound();
+        updateMeter();
+      }
+
+      function renderRoster() {
+        var roster = document.getElementById("roster");
+        roster.querySelectorAll(".buyer-chip").forEach(function (el) { el.remove(); });
+        state.buyers.forEach(function (buyer, index) {
+          var result = state.results[index];
+          var chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "buyer-chip" + (index === state.current ? " current" : "") + (result ? " done" : "");
+          chip.disabled = true;
+          var avatar = document.createElement("span");
+          avatar.className = "avatar";
+          avatar.textContent = initials(buyer.name);
+          var copy = document.createElement("span");
+          var strong = document.createElement("strong");
+          strong.textContent = buyer.name;
+          var small = document.createElement("small");
+          small.textContent = buyer.occupation;
+          copy.appendChild(strong); copy.appendChild(small);
+          var dot = document.createElement("span");
+          dot.className = "status-dot" + (result ? (result.convinced ? " yes" : " no") : "");
+          chip.appendChild(avatar); chip.appendChild(copy); chip.appendChild(dot);
+          roster.appendChild(chip);
+        });
+      }
+
+      function renderRound() {
+        var buyer = state.buyers[state.current];
+        var existing = state.results[state.current];
+        setArenaError("");
+        document.getElementById("roundCount").textContent = "Round " + (state.current + 1) + " of 5";
+        document.getElementById("skepticism").textContent = "Skepticism " + buyer.skepticism + "/5";
+        document.getElementById("activeAvatar").textContent = initials(buyer.name);
+        document.getElementById("activeName").textContent = buyer.name + ", " + buyer.age;
+        document.getElementById("activeBackground").textContent = buyer.occupation + ". " + buyer.background;
+        document.getElementById("activeObjection").textContent = "\u201c" + buyer.objection + "\u201d";
+        replyInput.value = existing ? existing.reply : "";
+        replyInput.disabled = Boolean(existing);
+        submitReply.disabled = Boolean(existing);
+        document.getElementById("replyArea").style.display = existing ? "none" : "block";
+        var reaction = document.getElementById("reaction");
+        reaction.classList.toggle("show", Boolean(existing));
+        if (existing) renderReaction(existing);
+        window.setTimeout(function () { if (!existing) replyInput.focus(); }, 100);
+      }
+
+      async function evaluateReply() {
+        setArenaError("");
+        var reply = replyInput.value.trim();
+        if (reply.length < 8) return setArenaError("Give the buyer a real answer before you lock it in.");
+        var buyer = state.buyers[state.current];
+        submitReply.disabled = true;
+        submitReply.textContent = "Buyer is deciding...";
+        replyInput.disabled = true;
+        try {
+          var data = await groqJSON(
+            "You are evaluating a sales reply from the viewpoint of one synthetic buyer. Judge only whether the reply directly and credibly resolves the stated objection. Do not reward confidence, length, or buzzwords. Return JSON only.",
+            "Offer: " + state.offer + "\nAudience: " + state.audience + "\nBuyer: " + JSON.stringify(buyer) + "\nBuyer objection: " + buyer.objection + "\nSeller reply: " + reply + "\n\nScore 0-100. Use disposition exactly: convinced for 70-100, still_skeptical for 40-69, harder_no for 0-39. Write reaction in this buyer's first-person voice, maximum 2 sentences, specific to the reply. Return: {\"score\":0,\"disposition\":\"convinced|still_skeptical|harder_no\",\"reaction\":\"\"}"
+          );
+          var score = Math.max(0, Math.min(100, Math.round(Number(data.score) || 0)));
+          var disposition = score >= 70 ? "convinced" : score >= 40 ? "still_skeptical" : "harder_no";
+          var result = {
+            reply: reply,
+            score: score,
+            disposition: disposition,
+            convinced: disposition === "convinced",
+            reaction: safeText(data.reaction, disposition === "convinced" ? "That answers my concern." : "I still do not have enough to buy.")
+          };
+          state.results[state.current] = result;
+          document.getElementById("replyArea").style.display = "none";
+          renderReaction(result);
+          document.getElementById("reaction").classList.add("show");
+          renderRoster();
+          updateMeter();
+        } catch (error) {
+          setArenaError((error.message || "The buyer could not evaluate that reply.") + " Your reply is still here. Try again.");
+          submitReply.disabled = false;
+          replyInput.disabled = false;
+        } finally {
+          submitReply.textContent = "Lock in reply";
+        }
+      }
+
+      function renderReaction(result) {
+        var badge = document.getElementById("reactionBadge");
+        var label = result.disposition === "convinced" ? "Convinced" : result.disposition === "still_skeptical" ? "Still skeptical" : "Harder no";
+        var cls = result.disposition === "convinced" ? "yes" : result.disposition === "still_skeptical" ? "maybe" : "no";
+        badge.className = "reaction-badge " + cls;
+        badge.textContent = label;
+        document.getElementById("reactionScore").textContent = result.score + "/100";
+        document.getElementById("reactionText").textContent = result.reaction;
+        document.getElementById("nextButton").textContent = state.current === 4 ? "Reveal final verdict" : "Face buyer " + (state.current + 2);
+      }
+
+      function verdictFromCount(count) {
+        if (count >= 4) return { label: "YES", cls: "yes", color: "var(--lime)" };
+        if (count >= 2) return { label: "NOT YET", cls: "maybe", color: "var(--yellow)" };
+        return { label: "NO", cls: "no", color: "var(--red)" };
+      }
+
+      function updateMeter() {
+        var count = state.results.filter(function (r) { return r && r.convinced; }).length;
+        var completed = state.results.filter(Boolean).length;
+        var verdict = completed ? verdictFromCount(count) : { label: "WAITING", color: "var(--muted)" };
+        var word = document.getElementById("verdictWord");
+        var fill = document.getElementById("meterFill");
+        word.textContent = verdict.label;
+        word.style.color = verdict.color;
+        fill.style.width = (count / 5 * 100) + "%";
+        fill.style.background = verdict.color;
+        var track = document.querySelector(".meter-track");
+        track.setAttribute("aria-valuenow", String(count));
+      }
+
+      submitReply.addEventListener("click", evaluateReply);
+      replyInput.addEventListener("keydown", function (event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); evaluateReply(); }
+      });
+
+      document.getElementById("nextButton").addEventListener("click", function () {
+        if (state.current < 4) {
+          state.current += 1;
+          renderRoster();
+          renderRound();
+        } else {
+          generateFinalReport();
+        }
+      });
+
+      async function generateFinalReport() {
+        showScreen("loadingScreen");
+        document.getElementById("loadingTitle").textContent = "Reading the room...";
+        document.getElementById("loadingText").textContent = "Turning five reactions into one fix you can actually use.";
+        var failures = state.buyers.map(function (buyer, index) {
+          var result = state.results[index];
+          return { buyer: buyer.name, objection: buyer.objection, reply: result.reply, score: result.score, convinced: result.convinced };
+        });
+        var fix;
+        try {
+          var data = await groqJSON(
+            "You are an exacting offer strategist. Produce one concrete change only. No list, no intro, no generic advice, no em dash. Return JSON only.",
+            "Offer: " + state.offer + "\nAudience: " + state.audience + "\nTest results: " + JSON.stringify(failures) + "\n\nGive the single most important offer change that would resolve the repeated or most damaging objection. If all buyers were convinced, strengthen the weakest-scoring area. Make it specific enough to rewrite the offer. Return: {\"one_fix\":\"\"}"
+          );
+          fix = safeText(data.one_fix, "Make the result more specific and add proof that directly answers the strongest objection.");
+        } catch (error) {
+          showScreen("arenaScreen");
+          setArenaError(error.message || "The final report could not be generated. Try again.");
+          return;
+        }
+        renderReport(fix);
+        showScreen("reportScreen");
+      }
+
+      function renderReport(fix) {
+        var count = state.results.filter(function (r) { return r.convinced; }).length;
+        var verdict = verdictFromCount(count);
+        var final = document.getElementById("finalVerdict");
+        final.textContent = verdict.label;
+        final.className = "final-verdict " + verdict.cls;
+        document.getElementById("reportScore").textContent = count + " of 5 buyers convinced";
+        document.getElementById("fixTitle").textContent = fix;
+        var breakdown = document.getElementById("breakdown");
+        breakdown.innerHTML = "";
+        state.buyers.forEach(function (buyer, index) {
+          var result = state.results[index];
+          var card = document.createElement("article");
+          card.className = "result-card";
+          var head = document.createElement("div"); head.className = "result-head";
+          var avatar = document.createElement("span"); avatar.className = "avatar"; avatar.textContent = initials(buyer.name);
+          var person = document.createElement("div");
+          var h3 = document.createElement("h3"); h3.textContent = buyer.name;
+          var meta = document.createElement("p"); meta.textContent = buyer.occupation + " · " + result.score + "/100";
+          person.appendChild(h3); person.appendChild(meta);
+          var status = document.createElement("span"); status.className = "result-state " + (result.convinced ? "yes" : "no"); status.textContent = result.convinced ? "Convinced" : "Not convinced";
+          head.appendChild(avatar); head.appendChild(person); head.appendChild(status);
+          var content = document.createElement("div"); content.className = "result-content";
+          var objectionWrap = document.createElement("div"); var ol = document.createElement("label"); ol.textContent = "Objection"; var op = document.createElement("p"); op.textContent = buyer.objection; objectionWrap.appendChild(ol); objectionWrap.appendChild(op);
+          var replyWrap = document.createElement("div"); var rl = document.createElement("label"); rl.textContent = "Your reply"; var rp = document.createElement("p"); rp.textContent = result.reply; replyWrap.appendChild(rl); replyWrap.appendChild(rp);
+          content.appendChild(objectionWrap); content.appendChild(replyWrap);
+          card.appendChild(head); card.appendChild(content); breakdown.appendChild(card);
+        });
+      }
+
+      document.getElementById("testAgain").addEventListener("click", function () {
+        state.offer = ""; state.audience = ""; state.buyers = []; state.results = []; state.current = 0;
+        offerInput.value = "";
+        document.querySelectorAll(".audience").forEach(function (el) { el.classList.remove("selected"); el.setAttribute("aria-pressed", "false"); });
+        setSetupError("");
+        showScreen("setupScreen");
+        offerInput.focus();
+      });
+    })();
+  </script>
+</body>
+</html>
